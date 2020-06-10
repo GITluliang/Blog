@@ -224,7 +224,7 @@ OK
 (integer) -2
 ```
 
-
+* mset/mget
 
 ```
 127.0.0.1:6379> mset k1 v1 k2 v3	# 批量设置
@@ -242,47 +242,256 @@ OK
 4) "k1"
 ```
 
+* getset：先get然后set
 
+```
+127.0.0.1:6379> getset db redis	# 如果不存在，则返回nil
+(nil)
+127.0.0.1:6379> get db	
+"redis"
+127.0.0.1:6379> getset db abc	# 如果存在值，返回原来的值，并设置新值
+"redis"
+127.0.0.1:6379> get db
+"abc"
+```
 
-value除了是字符串外还可以是数学，应用场景：计数器、对象缓存存储、JSON
+String除了是字符串外还可以是数学，应用场景：计数器、对象缓存存储、JSON
 
 ### List（列表）
 
 ​	在redis里面，我们可以吧List玩成栈、队列、阻塞队列等。所有list命令都以l开头，redis不区分大小写
 
 ```java
+********lpush、rpush、lrange
+127.0.0.1:6379> lpush list one	# 将一个或多个值插入到列表头部（左）
+(integer) 1
+127.0.0.1:6379> lpush list tow	
+(integer) 2
+127.0.0.1:6379> lpush list three
+(integer) 3
+127.0.0.1:6379> lrange list 0 -1	# 获取list中的值
+1) "three"
+2) "tow"
+3) "one"
+127.0.0.1:6379> lrange list 0 1	# 通过区间获取具体的值
+1) "three"
+2) "tow"
+127.0.0.1:6379> rpush list righr a	# 将一个或多个值插入到列表尾部（右）
+(integer) 5
+127.0.0.1:6379> lrange list 0 -1
+1) "three"
+2) "tow"
+3) "one"
+4) "righr"
+5) "a
+    
+********lpol、rpop、lrang、lindex、llen
+127.0.0.1:6379> lpop list	# 移除左边的元素
+"three"
+127.0.0.1:6379> rpop list	# 移除右边的元素
+"a"
+127.0.0.1:6379> lrange list 0 -1	# 获取key中的值
+1) "tow"
+2) "one"
+3) "righr"
+127.0.0.1:6379> lindex list 0	# 通过下标获取key中的值
+"tow"
+127.0.0.1:6379> llen list	# 返回列表的长度
+(integer) 3    
+    
+    
+********lrem移除指定的值
+127.0.0.1:6379> lrem list 1 b	# 移除list中指定个数的value,精准匹配
+(integer) 1
+127.0.0.1:6379> lrem list 1 e
+(integer) 1
+127.0.0.1:6379> lrem list 2 c
+(integer) 1
+127.0.0.1:6379> lrange list 0 -1
+1) "tow"
+2) "one"
+3) "righr"
+4) "a"
+5) "d  
 
+********ltrim
+127.0.0.1:6379> rpush list a1
+(integer) 1
+127.0.0.1:6379> rpush list a2
+(integer) 2
+127.0.0.1:6379> rpush list a3
+(integer) 3
+127.0.0.1:6379> rpush list a4
+(integer) 4
+127.0.0.1:6379> ltrim list 1 2	# 通过下标截取指定的长度
+OK
+127.0.0.1:6379> lrange list 0 -1
+1) "a2"
+2) "a3 
+********rpoppush	 
+127.0.0.1:6379> lrange list 0 -1
+1) "a2"
+2) "a3"
+127.0.0.1:6379> rpoplpush list mlist	#移除列表的最后一个元素，并将他移动到新的列表中 
+"a3"
+127.0.0.1:6379> lrange mlist 0 -1	查看新列表
+1) "a3"
+127.0.0.1:6379> lrange list 0 -1	查看原来列表
+1) "a2"    
+********lset
+127.0.0.1:6379> exists list		# 判断key是否存在
+(integer) 1
+127.0.0.1:6379> lset list 0 redis	# 通过指定下标进行替换
+OK
+127.0.0.1:6379> lrange list 0 -1	# 查看key
+1) "redis"
+127.0.0.1:6379> lset list 1 v	# 如果不存在，则会报错
+(error) ERR index out of range    
+    
+********linsert    
+127.0.0.1:6379> lpush list a b c 	
+(integer) 3
+127.0.0.1:6379> lrange list 0 -1
+1) "c"
+2) "b"
+3) "a"
+127.0.0.1:6379> linsert list after b hello	# 插入指定元素前面
+(integer) 4
+127.0.0.1:6379> linsert list before b word #插入指定元素后面
+(integer) 5
+127.0.0.1:6379> lrange list 0 -1
+1) "c"
+2) "word"
+3) "b"
+4) "hello"
+5) "a"     
 ```
 
-
+> 可以作为队列，栈，链表、数组使用
 
 ### Set（集合）
 
 set中的值是不能重读的
 
 ```
-
+127.0.0.1:6379> sadd set a b c		# set集合中添加值
+(integer) 3
+127.0.0.1:6379> smembers set		# 查看set集合
+1) "c"
+2) "b"
+3) "a"
+127.0.0.1:6379> sismember set a		# 判断set集合中是否存在
+(integer) 1
+127.0.0.1:6379> scard set			# 获取set集合元素个数
+(integer) 3
+127.0.0.1:6379> srem set b			# 移除set集合中指定元素
+(integer) 1
+127.0.0.1:6379> sadd set cd rf gf
+(integer) 3
+127.0.0.1:6379> srandmember set		# 随机抽取出一个
+"cd"
+127.0.0.1:6379> srandmember set 2	# 随机抽取出多个元素
+1) "gf"
+2) "c"
+127.0.0.1:6379> spop set			# 随机删除一个元素
+"gf"
+127.0.0.1:6379> spop set 2			# 随机删除多个元素
+1) "c"
+2) "rf"
+127.0.0.1:6379> smembers set		# 查看set集合
+1) "cd"
+2) "a"
+127.0.0.1:6379> smove set mset cd	# 将一个指定的值，移动到另外一个set集合
+(integer) 1
+127.0.0.1:6379> keys *
+1) "mset"
+2) "set"
+127.0.0.1:6379> sadd set a b e		# set集合添加元素
+(integer) 2
+127.0.0.1:6379> sadd mset b e d
+(integer) 3
+127.0.0.1:6379> sdiff set mset		# 差集
+1) "a"
+127.0.0.1:6379> sinter set mset		# 交集
+1) "b"
+2) "e"
+127.0.0.1:6379> sunion set mset		# 并集
+1) "e"
+2) "d"
+3) "cd"
+4) "b"
+5) "a"
 ```
 
 
 
 ### Hash（哈希）
 
-```
+Map集合，key-map 这个 时候value是一个map集合，本质上和String没有多大区别
 
 ```
+127.0.0.1:6379> hset hash h1 v1 h2 v2	# set一个或多个map
+(integer) 2
+127.0.0.1:6379> hget hash h2			# 获取指定字段值
+"v2"
+127.0.0.1:6379> hmset myhash h1 v1 h2 v2	# set多个key-value
+OK
+127.0.0.1:6379> hmget myhash h1 h2		# 获取多个字段值
+1) "v1"
+2) "v2"
+127.0.0.1:6379> hgetall hash			# 获取全部数据
+1) "h1"
+2) "v1"
+3) "h2"
+4) "v2"
+127.0.0.1:6379> hdel myhash h1			# 删除hash中指定key字段
+(integer) 1
+127.0.0.1:6379> hgetall myhash
+1) "h2"
+2) "v2"
+127.0.0.1:6379> hlen hash				# 获取hash表的字段数量
+(integer) 2
+127.0.0.1:6379> hexists hash field		# 判断hash中指定字段是否存在
+(integer) 0
+```
 
-
+hash更适合对象的存储，String更加适合字符串的存储
 
 ### ZSet（有序集合）
 
-在set基础上，增肌了一个值
+在set基础上，增加了一个值
 
 ```
-
+127.0.0.1:6379> zadd zset 2 d 6 g 8 y 		# 添加一个或多个用户
+(integer) 3
+127.0.0.1:6379> zrangebyscore zset -inf +inf	# 显示全部的用户，从小到大
+1) "d"
+2) "g"
+3) "y"
+127.0.0.1:6379> zrange zset 0 -1	# 从大到小进行排序
+1) "d"
+2) "g"
+3) "y"
+127.0.0.1:6379> zrangebyscore zset -inf +inf withscores	# 显示全部的用户，并且附带成绩
+1) "d"
+2) "2"
+3) "g"
+4) "6"
+5) "y"
+6) "8"
+127.0.0.1:6379> zrem zset g			# 删除有序集合中的指定元素
+(integer) 1
+127.0.0.1:6379> zrange zset 0 -1
+1) "d"
+2) "y"
+127.0.0.1:6379> zcard zset			# 获取有序集合中的个数
+(integer) 2
+127.0.0.1:6379> zcount zset 1 6		# 获取指定区间的成员数量
+(integer) 1
+127.0.0.1:6379>
 ```
 
-
+​	其余API可参考官方文档
 
 ## 三种特殊数据类型
 
@@ -298,9 +507,138 @@ set中的值是不能重读的
 
 
 
-## 事物
+## 事物	
+
+redis事务的本质，一组命令的集合。一个事务中所有的命令都会被序列化，在事务执行过程中会按照顺序依次执行。相当于把所有命令先放入队列，发起执行命令（exec）后依次执行。
+
+> redis 中的事务没有隔离级别的概念
+>
+> redis单个命令保持原子性，事务不保证原子性
+
+* 开启事务	multi
+* 命令入队    ......
+* 执行事务    exec
+
+>  正常执行
+
+```
+127.0.0.1:6379> multi		# 开启事务
+OK
+127.0.0.1:6379> set k1 v1	# 入队
+QUEUED
+127.0.0.1:6379> set k2 v2	# 入队
+QUEUED
+127.0.0.1:6379> get k2		# 入队
+QUEUED
+127.0.0.1:6379> set k3 v3	# 入队
+QUEUED
+127.0.0.1:6379> exec		# 执行事务
+1) OK
+2) OK
+3) "v2"
+4) OK
+```
+
+> 放弃事务
+
+```
+127.0.0.1:6379> multi		# 开启事务
+OK
+127.0.0.1:6379> set k1 v1	# 入队
+QUEUED
+127.0.0.1:6379> set k2 v2	# 入队
+QUEUED
+127.0.0.1:6379> discard		# 取消事务
+```
 
 
+
+> 编译型异常（命令有错，代码有问题），事务中所有的命令都不会被执行
+
+```
+127.0.0.1:6379> multi		# 开启事务
+OK
+127.0.0.1:6379> set k1 v1	# 入队
+QUEUED
+127.0.0.1:6379> set k2 v2	# 入队
+QUEUED
+127.0.0.1:6379> getset k3	# 错误的命令
+(error) ERR wrong number of arguments for 'getset' command
+127.0.0.1:6379> set k4 v4
+QUEUED
+127.0.0.1:6379> exec		# 执行事务报错
+(error) EXECABORT Transaction discarded because of previous errors.
+127.0.0.1:6379> get k4		# 所有的命令都不会被执行
+(nil)
+```
+
+
+
+> 运行时异常（1/0），其他命令正常执行，错误命令抛出异常
+
+```
+127.0.0.1:6379> set k1 v1
+OK
+127.0.0.1:6379> multi			# 开启事务
+OK	
+127.0.0.1:6379> incr k1			# 执行的时候会失败，String不能自增	
+QUEUED
+127.0.0.1:6379> set k2 v2
+QUEUED
+127.0.0.1:6379> get k2
+QUEUED
+127.0.0.1:6379> exec			# 执行事务，虽然第一个报错，但是其他依旧执行
+1) (error) ERR value is not an integer or out of range
+2) OK
+3) "v2"
+```
+
+
+
+> 监控，watch
+
+* 悲观锁：认为不管什么情况都会出问题，所以无论做什么都会加锁
+* 乐观锁：认为不会出问题，去更新的时候才去判断，如果发生改变，重新拉取，比较并交换
+
+**正常执行**
+
+```
+127.0.0.1:6379> set money 100
+OK
+127.0.0.1:6379> set out 0
+OK
+127.0.0.1:6379> watch money
+OK
+127.0.0.1:6379> multi
+OK
+127.0.0.1:6379> decrby money 20
+QUEUED
+127.0.0.1:6379> incrby out 20
+QUEUED
+127.0.0.1:6379> exec
+1) (integer) 80
+2) (integer) 20
+```
+
+**测试多线程修改值，使用watch当做redis乐观锁操作**
+
+```
+127.0.0.1:6379> watch money 		# 监视money
+OK
+127.0.0.1:6379> multi
+OK
+127.0.0.1:6379> decrby money 10
+QUEUED
+127.0.0.1:6379> incrby out 10
+QUEUED
+127.0.0.1:6379> exec				# 执行之前，另外一个线程修改了我们的值，这个时候会导致事务失败
+1) (integer) 70
+2) (integer) 30
+```
+
+如果事务失败，重新获取最新的值即可
+
+![image-20200611022710778](C:\Users\luliang\Desktop\Blog\Redis\img\watch)
 
 ## Redis.conf详解
 
