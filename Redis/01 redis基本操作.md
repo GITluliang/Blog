@@ -497,13 +497,114 @@ hash更适合对象的存储，String更加适合字符串的存储
 
 ### Geospatial地理位置
 
+redis在3.2推出了Geospatial，可以计算地理位置，两地之间的距离，方圆几里的人，打车记录等。
 
+> 相关命令
+
+geoadd
+
+geodist
+
+geohash
+
+geopos
+
+georadius
+
+georadiusbymember
 
 ### Hyperloglog
+
+参考：https://my.oschina.net/mengyuankan/blog/1932425
+
+Redis 的 HyperLogLog 提供了一种不太准确的基数统计方法，如统计页面的 UV (unique visitor)，指访问某个站点或点击某条新闻的不同IP地址的人数），它的标准误差是 0.81%；接下来看下 HyperLogLog 的操作：
+
+Redis 的 HyperLogLog 一共有三个：pfadd, pfcount, pfmerge :
+
+pfadd 用于增加计数，pfcount 用于统计计数，而 pfmerge 用于将多个计数合并在一起，如下所示
+
+```
+127.0.0.1:6379> pfadd p1 a j m l m n m e d a
+(integer) 1
+127.0.0.1:6379> pfcount p1
+(integer) 7
+127.0.0.1:6379> pfadd p2 a b a b a b
+(integer) 1
+127.0.0.1:6379> pfmerge p2 p1
+OK
+127.0.0.1:6379> pfcount p2
+(integer) 8
+127.0.0.1:6379> pfcount p1
+(integer) 7
+```
+
+上述例子中， p1 添加了 6 个元素，pfcount 统计个数为 6 ，统计是正确的，p2 也添加了 6 个元素，pfcount 统计个数也是正确的，使用 pfmerge 来把 p1 中的值合并到 p2 中去，因为 p1 , p2 有两个元素是重复的，所有 p2 的统计个数为 10 个，也是正确的，接下来使用代码插入更多的数据看下统计是否正确：
+
+```
+    public static void main(String[] args) {
+
+        Jedis jedis = new Jedis("127.0.0.1", 6379);
+
+        float size = 10000000;
+
+        for (int i = 0; i < size; i++) {
+            jedis.pfadd("myk", "mky-" + i);
+        }
+        long total = jedis.pfcount("myk");
+        System.out.println(String.format("统计个数: %s", total));
+        System.out.println(String.format("正确率: %s", (total / size)));
+        System.out.println(String.format("误差率: %s", 1 - (total / size)));
+        jedis.close();
+    }
+```
 
 
 
 ### Bitmap
+
+Bitmap(即Bitset)
+
+就是通过一个bit位来表示某个元素对应的值或者状态,其中的key就是对应元素本身。我们知道8个bit可以组成一个Byte，所以bitmap本身会极大的节省储存空间。
+
+Redis中的BitMap
+
+Redis从2.2.0版本开始新增了`setbit`,`getbit`,`bitcount`等几个bitmap相关命令。虽然是新命令，但是并没有新增新的数据类型，因为`setbit`等命令只不过是在`set`上的扩展
+
+> 位存储
+
+可以统计用户信息，活跃/不活跃、登录/未登录、365天打开等，具有两个状态的，都可以使用Bitmap。
+
+Bitmap位图，是一种数据结构。通过操作二进制位来记录，只有0和1两个状态。
+
+> 测试
+
+使用Bitmap来统计一周的打卡记录
+
+```
+127.0.0.1:6379> setbit sign 0 1	# 设置
+(integer) 0
+127.0.0.1:6379> setbit sign 1 1
+(integer) 0
+127.0.0.1:6379> setbit sign 2 0
+(integer) 0
+127.0.0.1:6379> setbit sign 3 1
+(integer) 0
+127.0.0.1:6379> setbit sign 4 0
+(integer) 0
+127.0.0.1:6379> setbit sign 5 1
+(integer) 0
+127.0.0.1:6379> setbit sign 6 0
+(integer) 0
+127.0.0.1:6379> getbit sign 6
+(integer) 0
+127.0.0.1:6379> getbit sign 5
+(integer) 1
+127.0.0.1:6379> getbit sign 1	# 查看
+(integer) 1
+127.0.0.1:6379> bitcount sign	# 统计
+(integer) 4
+
+```
 
 
 
@@ -637,8 +738,3 @@ QUEUED
 ```
 
 如果事务失败，重新获取最新的值即可
-
-![image-20200611022710778](C:\Users\luliang\Desktop\Blog\Redis\img\watch)
-
-## Redis.conf详解
-
