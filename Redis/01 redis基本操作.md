@@ -36,6 +36,9 @@ Redis（Remote Dictionary Server），远程字典服务
 上传或下载安装包，进行解压安装
 
 ```java
+apt-get update
+apt-get -y install make g++ gcc libpcre3 libpcrecpp* libpcre3-dev libssl-dev autoconf automake libtool libncurses5-dev libaio.dev ruby-dev rubygems
+
 tar xzvf /srv/ftp/redis-6.0.5.tar.gz -C /usr/local/
 cd /usr/local/redis-6.0.5/
 mark
